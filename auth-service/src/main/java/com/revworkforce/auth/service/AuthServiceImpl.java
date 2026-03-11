@@ -66,41 +66,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
-    @Override
-    @Transactional
-    public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new AuthException("Email already exists");
-        }
 
-        // Validate role exists
-        roleMasterRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new AuthException("Invalid role ID"));
-
-        User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
-                .roleId(request.getRoleId())
-                .status("ACTIVE")
-                .build();
-
-        user = userRepository.save(user);
-
-        Role role = Role.fromId(user.getRoleId());
-        String accessToken = jwtService.generateToken(user.getId(), user.getEmail(), role);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken.getToken())
-                .tokenType("Bearer")
-                .userId(user.getId())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .role(role.name())
-                .build();
-    }
 
     @Override
     @Transactional
