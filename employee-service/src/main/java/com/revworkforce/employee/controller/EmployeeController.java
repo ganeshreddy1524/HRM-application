@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -77,33 +76,6 @@ public class EmployeeController {
     public ResponseEntity<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
         log.info("Get employee by id id={}", id);
         EmployeeResponse employee = employeeService.getEmployeeById(id);
-        return ResponseEntity.ok(employee);
-    }
-
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<EmployeeResponse> updateStatus(
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id,
-            @RequestBody Map<String, String> statusRequest) {
-        log.info("Update employee status role={} id={}", role, id);
-        if (!"ADMIN".equals(role)) {
-            throw new UnauthorizedException("Only admins can update employee status");
-        }
-        String status = statusRequest.get("status");
-        EmployeeResponse employee = employeeService.activateDeactivate(id, status);
-        return ResponseEntity.ok(employee);
-    }
-
-    @PatchMapping("/{id}/manager")
-    public ResponseEntity<EmployeeResponse> assignManager(
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id,
-            @Valid @RequestBody ManagerAssignRequest request) {
-        log.info("Assign manager role={} id={} managerId={}", role, id, request.getManagerId());
-        if (!"ADMIN".equals(role)) {
-            throw new UnauthorizedException("Only admins can assign managers");
-        }
-        EmployeeResponse employee = employeeService.assignManager(id, request.getManagerId());
         return ResponseEntity.ok(employee);
     }
 }

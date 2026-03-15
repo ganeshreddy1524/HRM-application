@@ -11,7 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -64,26 +63,6 @@ class EmployeeControllerTest {
     }
 
     @Test
-    void updateStatusRequiresAdmin() {
-        assertThrows(UnauthorizedException.class, () -> controller.updateStatus("EMPLOYEE", 1L, Map.of("status", "ACTIVE")));
-    }
-
-    @Test
-    void updateStatusReturnsOk() {
-        when(employeeService.activateDeactivate(1L, "ACTIVE")).thenReturn(EmployeeResponse.builder().id(1L).status("ACTIVE").build());
-        var res = controller.updateStatus("ADMIN", 1L, Map.of("status", "ACTIVE"));
-        assertEquals(HttpStatus.OK, res.getStatusCode());
-        assertEquals("ACTIVE", res.getBody().getStatus());
-    }
-
-    @Test
-    void assignManagerRequiresAdmin() {
-        ManagerAssignRequest req = new ManagerAssignRequest();
-        req.setManagerId(5L);
-        assertThrows(UnauthorizedException.class, () -> controller.assignManager("EMPLOYEE", 1L, req));
-    }
-
-    @Test
     void logoutLikeEndpointsCallService() {
         when(employeeService.getEmployeeById(1L)).thenReturn(EmployeeResponse.builder().id(1L).build());
         var res = controller.getEmployeeById(1L);
@@ -91,4 +70,3 @@ class EmployeeControllerTest {
         verify(employeeService).getEmployeeById(1L);
     }
 }
-

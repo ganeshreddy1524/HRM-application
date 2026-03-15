@@ -28,12 +28,4 @@ public class DirectoryController {
         List<EmployeeSearchResponse> employees = directoryService.searchEmployees(query);
         return ResponseEntity.ok(employees);
     }
-
-    @GetMapping("/department/{departmentId}")
-    public ResponseEntity<List<EmployeeSearchResponse>> getEmployeesByDepartment(
-            @PathVariable Long departmentId) {
-        log.info("Get employees by department departmentId={}", departmentId);
-        List<EmployeeSearchResponse> employees = directoryService.getEmployeesByDepartment(departmentId);
-        return ResponseEntity.ok(employees);
-    }
 }

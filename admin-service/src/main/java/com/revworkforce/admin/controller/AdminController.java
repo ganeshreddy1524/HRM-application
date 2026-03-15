@@ -20,16 +20,13 @@ public class AdminController {
 
     private final DepartmentService departmentService;
     private final DesignationService designationService;
-    private final HolidayService holidayService;
     private final AnnouncementService announcementService;
 
     public AdminController(DepartmentService departmentService,
                           DesignationService designationService,
-                          HolidayService holidayService,
                           AnnouncementService announcementService) {
         this.departmentService = departmentService;
         this.designationService = designationService;
-        this.holidayService = holidayService;
         this.announcementService = announcementService;
     }
 
@@ -56,16 +53,6 @@ public class AdminController {
         return new ResponseEntity<>(departmentService.create(request), HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/departments/{id}")
-    public ResponseEntity<Void> deleteDepartment(
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id) {
-        log.info("Delete department role={} id={}", role, id);
-        verifyAdminRole(role);
-        departmentService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
     // Designation endpoints
     @GetMapping("/designations")
     public ResponseEntity<List<DesignationResponse>> getAllDesignations(@RequestHeader("X-User-Role") String role) {
@@ -83,52 +70,6 @@ public class AdminController {
         return new ResponseEntity<>(designationService.create(request), HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/designations/{id}")
-    public ResponseEntity<Void> deleteDesignation(
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id) {
-        log.info("Delete designation role={} id={}", role, id);
-        verifyAdminRole(role);
-        designationService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    // Holiday endpoints
-    @GetMapping("/holidays")
-    public ResponseEntity<List<HolidayResponse>> getAllHolidays(@RequestHeader("X-User-Role") String role) {
-        log.info("Get all holidays role={}", role);
-        verifyAdminRole(role);
-        return ResponseEntity.ok(holidayService.getAll());
-    }
-
-    @GetMapping("/holidays/year/{year}")
-    public ResponseEntity<List<HolidayResponse>> getHolidaysByYear(
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable int year) {
-        log.info("Get holidays by year role={} year={}", role, year);
-        verifyAdminRole(role);
-        return ResponseEntity.ok(holidayService.getByYear(year));
-    }
-
-    @PostMapping("/holidays")
-    public ResponseEntity<HolidayResponse> createHoliday(
-            @RequestHeader("X-User-Role") String role,
-            @Valid @RequestBody HolidayRequest request) {
-        log.info("Create holiday role={} date={}", role, request.getDate());
-        verifyAdminRole(role);
-        return new ResponseEntity<>(holidayService.create(request), HttpStatus.CREATED);
-    }
-
-    @DeleteMapping("/holidays/{id}")
-    public ResponseEntity<Void> deleteHoliday(
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id) {
-        log.info("Delete holiday role={} id={}", role, id);
-        verifyAdminRole(role);
-        holidayService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
     // Announcement endpoints
     @GetMapping("/announcements")
     public ResponseEntity<List<AnnouncementResponse>> getAllAnnouncements(@RequestHeader("X-User-Role") String role) {
@@ -144,25 +85,5 @@ public class AdminController {
         log.info("Create announcement role={} title={}", role, request.getTitle());
         verifyAdminRole(role);
         return new ResponseEntity<>(announcementService.create(request), HttpStatus.CREATED);
-    }
-
-    @PutMapping("/announcements/{id}")
-    public ResponseEntity<AnnouncementResponse> updateAnnouncement(
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id,
-            @Valid @RequestBody AnnouncementRequest request) {
-        log.info("Update announcement role={} id={}", role, id);
-        verifyAdminRole(role);
-        return ResponseEntity.ok(announcementService.update(id, request));
-    }
-
-    @DeleteMapping("/announcements/{id}")
-    public ResponseEntity<Void> deleteAnnouncement(
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id) {
-        log.info("Delete announcement role={} id={}", role, id);
-        verifyAdminRole(role);
-        announcementService.delete(id);
-        return ResponseEntity.noContent().build();
     }
 }

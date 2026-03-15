@@ -2,7 +2,6 @@ package com.revworkforce.performance.controller;
 
 import com.revworkforce.performance.dto.PerformanceReviewRequest;
 import com.revworkforce.performance.dto.PerformanceReviewResponse;
-import com.revworkforce.performance.dto.ReviewFeedbackRequest;
 import com.revworkforce.performance.dto.TeamReviewResponse;
 import com.revworkforce.performance.service.PerformanceService;
 import org.junit.jupiter.api.Test;
@@ -53,24 +52,4 @@ class PerformanceControllerTest {
         var response = controller.getTeamReviews(10L, "ADMIN");
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
-
-    @Test
-    void submitReviewReturnsOk() {
-        PerformanceReviewResponse res = new PerformanceReviewResponse();
-        res.setId(5L);
-        when(performanceService.submitReview(10L, 5L)).thenReturn(res);
-        var response = controller.submitReview(10L, 5L);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    @Test
-    void provideFeedbackReturnsOk() {
-        ReviewFeedbackRequest req = new ReviewFeedbackRequest();
-        req.setManagerFeedback("x");
-        req.setManagerRating(5);
-        when(performanceService.provideFeedback(10L, 5L, req, "ADMIN")).thenReturn(new PerformanceReviewResponse());
-        var response = controller.provideFeedback(10L, "ADMIN", 5L, req);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
 }
-

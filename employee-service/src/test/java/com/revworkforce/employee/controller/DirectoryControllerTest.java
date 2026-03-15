@@ -30,13 +30,4 @@ class DirectoryControllerTest {
         assertEquals(HttpStatus.OK, res.getStatusCode());
         assertEquals(1, res.getBody().size());
     }
-
-    @Test
-    void getEmployeesByDepartmentReturnsOk() {
-        when(directoryService.getEmployeesByDepartment(1L)).thenReturn(List.of());
-        var res = controller.getEmployeesByDepartment(1L);
-        assertEquals(HttpStatus.OK, res.getStatusCode());
-        assertEquals(0, res.getBody().size());
-    }
 }
-

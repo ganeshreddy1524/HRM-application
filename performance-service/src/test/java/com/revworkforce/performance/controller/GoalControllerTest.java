@@ -1,10 +1,8 @@
 package com.revworkforce.performance.controller;
 
-import com.revworkforce.performance.dto.GoalCommentRequest;
 import com.revworkforce.performance.dto.GoalRequest;
 import com.revworkforce.performance.dto.GoalResponse;
 import com.revworkforce.performance.dto.GoalStatusUpdateRequest;
-import com.revworkforce.performance.dto.TeamGoalResponse;
 import com.revworkforce.performance.enums.GoalPriority;
 import com.revworkforce.performance.enums.GoalStatus;
 import com.revworkforce.performance.service.GoalService;
@@ -55,13 +53,6 @@ class GoalControllerTest {
     }
 
     @Test
-    void getTeamGoalsReturnsOk() {
-        when(goalService.getTeamGoals(10L, "ADMIN")).thenReturn(new TeamGoalResponse(List.of()));
-        var response = controller.getTeamGoals(10L, "ADMIN");
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    @Test
     void updateGoalStatusReturnsOk() {
         GoalStatusUpdateRequest req = new GoalStatusUpdateRequest();
         req.setStatus(GoalStatus.COMPLETED);
@@ -73,14 +64,4 @@ class GoalControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(GoalStatus.COMPLETED, response.getBody().getStatus());
     }
-
-    @Test
-    void addManagerCommentReturnsOk() {
-        GoalCommentRequest req = new GoalCommentRequest();
-        req.setManagerComment("x");
-        when(goalService.addManagerComment(10L, 5L, req, "MANAGER")).thenReturn(new GoalResponse());
-        var response = controller.addManagerComment(10L, "MANAGER", 5L, req);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
 }
-

@@ -2,7 +2,6 @@ package com.revworkforce.performance.controller;
 
 import com.revworkforce.performance.dto.PerformanceReviewRequest;
 import com.revworkforce.performance.dto.PerformanceReviewResponse;
-import com.revworkforce.performance.dto.ReviewFeedbackRequest;
 import com.revworkforce.performance.dto.TeamReviewResponse;
 import com.revworkforce.performance.service.PerformanceService;
 import jakarta.validation.Valid;
@@ -51,26 +50,6 @@ public class PerformanceController {
             @RequestHeader("X-User-Role") String role) {
         log.info("Get team reviews userId={} role={}", userId, role);
         TeamReviewResponse response = performanceService.getTeamReviews(userId, role);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{id}/submit")
-    public ResponseEntity<PerformanceReviewResponse> submitReview(
-            @RequestHeader("X-User-Id") Long userId,
-            @PathVariable Long id) {
-        log.info("Submit review userId={} reviewId={}", userId, id);
-        PerformanceReviewResponse response = performanceService.submitReview(userId, id);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{id}/feedback")
-    public ResponseEntity<PerformanceReviewResponse> provideFeedback(
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id,
-            @Valid @RequestBody ReviewFeedbackRequest request) {
-        log.info("Provide feedback userId={} role={} reviewId={}", userId, role, id);
-        PerformanceReviewResponse response = performanceService.provideFeedback(userId, id, request, role);
         return ResponseEntity.ok(response);
     }
 }

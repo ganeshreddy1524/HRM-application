@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -63,14 +62,5 @@ public class NotificationController {
         log.info("Mark admin notification read userId={} notificationId={}", userId, id);
         notificationService.markAsRead(id, userId);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/unread/count")
-    public ResponseEntity<Map<String, Long>> getUnreadCount(@RequestHeader("X-User-Id") Long userId) {
-        log.info("Get admin unread notification count userId={}", userId);
-        long count = notificationService.getUnreadCount(userId);
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", count);
-        return ResponseEntity.ok(response);
     }
 }

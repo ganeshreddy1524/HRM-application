@@ -1,10 +1,8 @@
 package com.revworkforce.performance.controller;
 
-import com.revworkforce.performance.dto.GoalCommentRequest;
 import com.revworkforce.performance.dto.GoalRequest;
 import com.revworkforce.performance.dto.GoalResponse;
 import com.revworkforce.performance.dto.GoalStatusUpdateRequest;
-import com.revworkforce.performance.dto.TeamGoalResponse;
 import com.revworkforce.performance.service.GoalService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -45,15 +43,6 @@ public class GoalController {
         return ResponseEntity.ok(goals);
     }
 
-    @GetMapping("/team")
-    public ResponseEntity<TeamGoalResponse> getTeamGoals(
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestHeader("X-User-Role") String role) {
-        log.info("Get team goals userId={} role={}", userId, role);
-        TeamGoalResponse response = goalService.getTeamGoals(userId, role);
-        return ResponseEntity.ok(response);
-    }
-
     @PatchMapping("/{id}/status")
     public ResponseEntity<GoalResponse> updateGoalStatus(
             @RequestHeader("X-User-Id") Long userId,
@@ -61,17 +50,6 @@ public class GoalController {
             @Valid @RequestBody GoalStatusUpdateRequest request) {
         log.info("Update goal status userId={} goalId={} status={}", userId, id, request.getStatus());
         GoalResponse response = goalService.updateGoalStatus(userId, id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{id}/comment")
-    public ResponseEntity<GoalResponse> addManagerComment(
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestHeader("X-User-Role") String role,
-            @PathVariable Long id,
-            @Valid @RequestBody GoalCommentRequest request) {
-        log.info("Add manager comment userId={} role={} goalId={}", userId, role, id);
-        GoalResponse response = goalService.addManagerComment(userId, id, request, role);
         return ResponseEntity.ok(response);
     }
 }

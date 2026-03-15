@@ -55,8 +55,10 @@ application-local.properties
 
 node_modules/
 frontend/node_modules/
+frontend/.angular
 
 node_modules/
 dist/
 target/
 *.log"frontend/.angular/" 
+

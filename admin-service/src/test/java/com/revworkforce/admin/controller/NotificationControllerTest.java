@@ -52,14 +52,6 @@ class NotificationControllerTest {
     }
 
     @Test
-    void unreadCountReturnsOk() {
-        when(service.getUnreadCount(10L)).thenReturn(7L);
-        var res = controller.getUnreadCount(10L);
-        assertEquals(HttpStatus.OK, res.getStatusCode());
-        assertEquals(7L, res.getBody().get("count"));
-    }
-
-    @Test
     void getNotificationsReturnsOk() {
         when(service.getNotifications(10L)).thenReturn(List.of(AdminNotificationResponse.builder().id(1L).message("x").build()));
         var res = controller.getNotifications(10L);
@@ -67,4 +59,3 @@ class NotificationControllerTest {
         assertEquals(1, res.getBody().size());
     }
 }
-
