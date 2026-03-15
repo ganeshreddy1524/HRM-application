@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,11 +29,43 @@ public class UserController {
         this.authService = authService;
     }
 
+    private boolean isAdmin(String roleHeader) {
+        if ("ADMIN".equals(roleHeader)) {
+            return true;
+        }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
+        return auth.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
+    private Long resolveUserId(Long headerUserId) {
+        if (headerUserId != null) {
+            return headerUserId;
+        }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            throw new UnauthorizedException("Missing user identity");
+        }
+        Object principal = auth.getPrincipal();
+        if (principal instanceof Long l) {
+            return l;
+        }
+        if (principal instanceof String s) {
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        throw new UnauthorizedException("Missing user identity");
+    }
+
     @GetMapping
     public ResponseEntity<List<UserListResponse>> getAllUsers(
             @RequestHeader(value = "X-User-Role", required = false) String role) {
         log.info("Get all users role={}", role);
-        if (!"ADMIN".equals(role)) {
+        if (!isAdmin(role)) {
             throw new UnauthorizedException("Only admins can view all users");
         }
         List<User> users = authService.getAllUsers();
@@ -46,7 +80,7 @@ public class UserController {
             @RequestHeader(value = "X-User-Role", required = false) String role,
             @Valid @RequestBody AdminCreateUserRequest request) {
         log.info("Create user role={} employeeId={}", role, request.getEmployeeId());
-        if (!"ADMIN".equals(role)) {
+        if (!isAdmin(role)) {
             throw new UnauthorizedException("Only admins can create users");
         }
         User user = authService.createUser(request);
@@ -69,7 +103,7 @@ public class UserController {
             @PathVariable Long id,
             @RequestParam boolean active) {
         log.info("Set user active role={} id={} active={}", role, id, active);
-        if (!"ADMIN".equals(role)) {
+        if (!isAdmin(role)) {
             throw new UnauthorizedException("Only admins can activate/deactivate users");
         }
         User user = authService.setUserActive(id, active);
@@ -78,7 +112,8 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserListResponse> getCurrentUser(
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader) {
+        Long userId = resolveUserId(userIdHeader);
         log.info("Get current user userId={}", userId);
         User user = authService.getUserById(userId);
         return ResponseEntity.ok(new UserListResponse(user));

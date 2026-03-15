@@ -2,6 +2,7 @@ package com.revworkforce.auth.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -95,6 +96,14 @@ public class GlobalExceptionHandler {
         log.warn("Bad request: {}", ex.getMessage());
         Map<String, String> response = new HashMap<>();
         response.put("error", ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation", ex);
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "Request violates a database constraint (possible duplicate email/employeeId).");
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 

@@ -15,7 +15,8 @@ public class LoggingAspect {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingAspect.class);
 
-    @Around("execution(* com.revworkforce.auth..*(..)) && !within(com.revworkforce.auth.aspect..*)")
+    // Avoid advising Spring configuration/filter beans (e.g. OncePerRequestFilter) since AOP proxies can break servlet filter lifecycle.
+    @Around("execution(* com.revworkforce.auth..*(..)) && !within(com.revworkforce.auth.aspect..*) && !within(com.revworkforce.auth.config..*)")
     public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
         String signature = joinPoint.getSignature().toShortString();
         log.info("Entering {} args={}", signature, Arrays.toString(joinPoint.getArgs()));

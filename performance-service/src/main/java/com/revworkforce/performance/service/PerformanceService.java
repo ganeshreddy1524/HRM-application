@@ -59,8 +59,11 @@ public class PerformanceService {
         review.setKeyDeliverables(request.getKeyDeliverables());
         review.setAccomplishments(request.getAccomplishments());
         review.setAreasOfImprovement(request.getAreasOfImprovement());
-        review.setSelfRating(request.getSelfRating());
-        review.setStatus(ReviewStatus.DRAFT);
+        // In the current UI flow, the manager/admin is "submitting" a review in one step.
+        // Store the rating as manager/admin rating and mark as SUBMITTED.
+        review.setManagerRating(request.getSelfRating());
+        review.setSelfRating(null);
+        review.setStatus(ReviewStatus.SUBMITTED);
 
         PerformanceReview savedReview = reviewRepository.save(review);
         log.info("Create review success reviewId={}", savedReview.getId());

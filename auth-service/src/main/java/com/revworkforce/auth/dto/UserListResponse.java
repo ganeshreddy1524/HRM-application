@@ -20,8 +20,19 @@ public class UserListResponse {
         this.employeeId = user.getEmployeeId();
         this.fullName = user.getFullName();
         this.email = user.getEmail();
-        this.role = Role.fromId(user.getRoleId()).name();
+        this.role = resolveRoleName(user.getRoleId());
         this.active = "ACTIVE".equals(user.getStatus());
+    }
+
+    private static String resolveRoleName(Integer roleId) {
+        if (roleId == null) {
+            return Role.EMPLOYEE.name();
+        }
+        try {
+            return Role.fromId(roleId).name();
+        } catch (IllegalArgumentException ex) {
+            return Role.EMPLOYEE.name();
+        }
     }
 
     // Getters

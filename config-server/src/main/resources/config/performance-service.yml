@@ -5,7 +5,7 @@ spring:
   application:
     name: performance-service
   datasource:
-    url: jdbc:h2:mem:performancedb
+    url: jdbc:h2:mem:performancedb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -42,4 +42,3 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10000
         permittedNumberOfCallsInHalfOpenState: 3
-

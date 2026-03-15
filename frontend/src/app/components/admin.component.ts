@@ -214,7 +214,10 @@ export class AdminComponent implements OnInit {
   ngOnInit(): void { this.load(); }
 
   load(): void {
-    this.api.get<any[]>('/users').subscribe(r => this.users = r);
+    this.api.get<any[]>('/users').subscribe({
+      next: r => this.users = r || [],
+      error: () => this.users = []
+    });
     this.api.get<any[]>('/employees').subscribe({
       next: r => {
         this.employees = r || [];
@@ -231,9 +234,18 @@ export class AdminComponent implements OnInit {
       next: r => this.teamLeaves = r?.leaves || [],
       error: () => this.teamLeaves = []
     });
-    this.api.get<any[]>('/admin/departments').subscribe(r => this.departments = r);
-    this.api.get<any[]>('/admin/designations').subscribe(r => this.designations = r);
-    this.api.get<any[]>('/admin/announcements').subscribe(r => this.announcements = r);
+    this.api.get<any[]>('/admin/departments').subscribe({
+      next: r => this.departments = r || [],
+      error: () => this.departments = []
+    });
+    this.api.get<any[]>('/admin/designations').subscribe({
+      next: r => this.designations = r || [],
+      error: () => this.designations = []
+    });
+    this.api.get<any[]>('/admin/announcements').subscribe({
+      next: r => this.announcements = r || [],
+      error: () => this.announcements = []
+    });
   }
 
   saveEmployee(): void {
@@ -323,8 +335,15 @@ export class AdminComponent implements OnInit {
       },
       error: err => {
         const backendError = err?.error;
-        if (backendError?.error) {
+        if (backendError?.errors && typeof backendError.errors === 'object') {
+          const first = Object.values(backendError.errors)[0] as string;
+          this.createEmpError = first || 'Unable to create employee.';
+        } else if (backendError?.message) {
+          this.createEmpError = backendError.message;
+        } else if (backendError?.error) {
           this.createEmpError = backendError.error;
+        } else if (typeof backendError === 'string') {
+          this.createEmpError = backendError;
         } else if (backendError && typeof backendError === 'object') {
           const firstMessage = Object.values(backendError)[0] as string;
           this.createEmpError = firstMessage || 'Unable to create employee.';

@@ -42,7 +42,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse login(LoginRequest request) {
-        String username = request.getUsername().trim();
+        String username = (request.getUsername() == null ? "" : request.getUsername()).trim();
+        if (username.isBlank()) {
+            throw new AuthException("Invalid email or password");
+        }
         log.info("Login attempt username={}", username);
         User user = userRepository.findByEmail(username)
                 .or(() -> userRepository.findByEmployeeId(username))
@@ -58,7 +61,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException("Account is inactive. Please contact administrator.");
         }
 
-        Role role = Role.fromId(user.getRoleId());
+        Role role = resolveRole(user.getRoleId());
         String accessToken = jwtService.generateToken(user.getId(), user.getEmail(), role);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
         log.info("Login success userId={} role={}", user.getId(), role.name());
@@ -136,7 +139,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(refreshToken.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Role role = Role.fromId(user.getRoleId());
+        Role role = resolveRole(user.getRoleId());
         String accessToken = jwtService.generateToken(user.getId(), user.getEmail(), role);
         log.info("Refresh token success userId={} role={}", user.getId(), role.name());
 
@@ -201,6 +204,17 @@ public class AuthServiceImpl implements AuthService {
         User saved = userRepository.save(user);
         log.info("Create user success userId={} roleId={}", saved.getId(), saved.getRoleId());
         return saved;
+    }
+
+    private static Role resolveRole(Integer roleId) {
+        if (roleId == null) {
+            return Role.EMPLOYEE;
+        }
+        try {
+            return Role.fromId(roleId);
+        } catch (IllegalArgumentException ex) {
+            return Role.EMPLOYEE;
+        }
     }
 
     @Override

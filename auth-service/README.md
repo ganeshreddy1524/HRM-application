@@ -72,7 +72,7 @@ docker run -p 8081:8081 auth-service
 
 Access H2 database console at: http://localhost:8081/h2-console
 
-- **JDBC URL:** jdbc:h2:mem:authdb
+- **JDBC URL:** jdbc:h2:mem:authdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
 - **Username:** sa
 - **Password:** (leave empty)
 

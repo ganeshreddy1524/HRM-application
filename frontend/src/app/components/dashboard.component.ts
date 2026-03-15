@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { catchError, of } from 'rxjs';
 import { ApiService } from '../services/api.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -85,7 +86,8 @@ import { ApiService } from '../services/api.service';
           <div>{{ l.leaveType }}: {{ l.startDate }} to {{ l.endDate }}</div>
           <div>Reason: {{ l.reason }}</div>
           <div class="mb-2">Status: {{ l.status }}</div>
-          <textarea class="form-control mb-2" rows="2"
+          <textarea *ngIf="l.status === 'PENDING'"
+                    class="form-control mb-2" rows="2"
                     [ngModel]="decisionComments[l.id] || ''"
                     (ngModelChange)="decisionComments[l.id] = $event"
                     [ngModelOptions]="{standalone: true}"
@@ -133,7 +135,7 @@ export class DashboardComponent implements OnInit {
   profileForm: FormGroup;
   notifyForm: FormGroup;
 
-  constructor(private api: ApiService, private fb: FormBuilder) {
+  constructor(private api: ApiService, private fb: FormBuilder, private auth: AuthService) {
     this.profileForm = this.fb.group({
       phone: [''],
       address: [''],
@@ -153,7 +155,15 @@ export class DashboardComponent implements OnInit {
   }
 
   loadDashboard(): void {
-    this.api.get<any>('/users/me').subscribe(authUser => {
+    this.api.get<any>('/users/me').pipe(
+      catchError(() => {
+        this.auth.logout();
+        return of(null);
+      })
+    ).subscribe(authUser => {
+      if (!authUser) {
+        return;
+      }
       this.api.get<any>('/employees/profile').pipe(
         catchError(() => of(null))
       ).subscribe(profile => {
@@ -258,7 +268,10 @@ export class DashboardComponent implements OnInit {
 
   approveLeave(id: number): void {
     const comment = (this.decisionComments[id] || '').trim();
-    this.api.patch(`/leaves/${id}/approve`, { comment }).subscribe(() => this.loadDashboard());
+    this.api.patch(`/leaves/${id}/approve`, { comment }).subscribe(() => {
+      delete this.decisionComments[id];
+      this.loadDashboard();
+    });
   }
 
   rejectLeave(id: number): void {
@@ -267,6 +280,9 @@ export class DashboardComponent implements OnInit {
       this.notifyError = 'Reject comment is required.';
       return;
     }
-    this.api.patch(`/leaves/${id}/reject`, { comment }).subscribe(() => this.loadDashboard());
+    this.api.patch(`/leaves/${id}/reject`, { comment }).subscribe(() => {
+      delete this.decisionComments[id];
+      this.loadDashboard();
+    });
   }
 }

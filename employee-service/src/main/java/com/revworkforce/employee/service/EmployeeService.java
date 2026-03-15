@@ -7,6 +7,7 @@ import com.revworkforce.employee.entity.Employee;
 import com.revworkforce.employee.exception.ResourceNotFoundException;
 import com.revworkforce.employee.exception.UnauthorizedException;
 import com.revworkforce.employee.repository.EmployeeRepository;
+import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,7 +338,7 @@ public class EmployeeService {
         return employeeRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     log.info("Creating new employee profile userId={}", userId);
-                    Map<String, Object> user = authServiceClient.getUserById(userId);
+                    Map<String, Object> user = fetchAuthUser(userId);
                     if (user == null) {
                         throw new ResourceNotFoundException("Employee not found for user ID: " + userId);
                     }
@@ -374,11 +375,22 @@ public class EmployeeService {
 
     private String getEmployeeCode(Long userId) {
         try {
-            Map<String, Object> authUser = authServiceClient.getUserById(userId);
+            Map<String, Object> authUser = fetchAuthUser(userId);
             return String.valueOf(authUser.getOrDefault("employeeId", userId));
         } catch (Exception e) {
             log.debug("Employee code lookup failed userId={}", userId);
             return String.valueOf(userId);
+        }
+    }
+
+    private Map<String, Object> fetchAuthUser(Long userId) {
+        try {
+            return authServiceClient.getUserById(userId);
+        } catch (FeignException.NotFound ex) {
+            throw new UnauthorizedException("User session is invalid (user not found). Please login again.");
+        } catch (FeignException ex) {
+            log.warn("Auth-service lookup failed userId={} status={}", userId, ex.status());
+            throw new IllegalStateException("Unable to verify user details. Please try again.");
         }
     }
 }
