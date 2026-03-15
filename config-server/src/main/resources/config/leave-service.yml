@@ -4,10 +4,6 @@ server:
 spring:
   application:
     name: leave-service
-
-  config:
-    import: optional:configserver:http://localhost:8888
-
   datasource:
     url: jdbc:h2:mem:leavedb
     driver-class-name: org.h2.Driver
@@ -49,3 +45,4 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10000
         permittedNumberOfCallsInHalfOpenState: 3
+

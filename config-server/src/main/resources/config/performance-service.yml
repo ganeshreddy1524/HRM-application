@@ -1,15 +1,11 @@
 server:
-  port: 8083
+  port: 8084
 
 spring:
   application:
-    name: leave-service
-
-  config:
-    import: optional:configserver:http://localhost:8888
-
+    name: performance-service
   datasource:
-    url: jdbc:h2:mem:leavedb
+    url: jdbc:h2:mem:performancedb
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -32,9 +28,6 @@ eureka:
   instance:
     prefer-ip-address: true
 
-leave:
-  total-allocated: 24
-
 management:
   endpoints:
     web:
@@ -49,3 +42,4 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10000
         permittedNumberOfCallsInHalfOpenState: 3
+

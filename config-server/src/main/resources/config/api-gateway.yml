@@ -4,8 +4,6 @@ server:
 spring:
   application:
     name: api-gateway
-  config:
-    import: optional:configserver:http://localhost:8888
   cloud:
     gateway:
       discovery:
@@ -37,3 +35,4 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10000
         permittedNumberOfCallsInHalfOpenState: 3
+
