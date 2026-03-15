@@ -3,6 +3,7 @@ package com.revworkforce.employee.dto;
 public class EmployeeSummaryResponse {
 
     private Long id;
+    private Long userId;
     private String fullName;
     private String email;
     private Long managerId;
@@ -13,6 +14,7 @@ public class EmployeeSummaryResponse {
 
     private EmployeeSummaryResponse(Builder builder) {
         this.id = builder.id;
+        this.userId = builder.userId;
         this.fullName = builder.fullName;
         this.email = builder.email;
         this.managerId = builder.managerId;
@@ -21,6 +23,10 @@ public class EmployeeSummaryResponse {
     // Getters
     public Long getId() {
         return id;
+    }
+
+    public Long getUserId() {
+        return userId;
     }
 
     public String getFullName() {
@@ -38,6 +44,10 @@ public class EmployeeSummaryResponse {
     // Setters
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public void setFullName(String fullName) {
@@ -59,12 +69,18 @@ public class EmployeeSummaryResponse {
 
     public static class Builder {
         private Long id;
+        private Long userId;
         private String fullName;
         private String email;
         private Long managerId;
 
         public Builder id(Long id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder userId(Long userId) {
+            this.userId = userId;
             return this;
         }
 

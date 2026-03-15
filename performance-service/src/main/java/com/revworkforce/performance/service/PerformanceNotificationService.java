@@ -6,11 +6,15 @@ import com.revworkforce.performance.entity.PerformanceReview;
 import com.revworkforce.performance.exception.ResourceNotFoundException;
 import com.revworkforce.performance.repository.PerformanceNotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
 public class PerformanceNotificationService {
+
+    private static final Logger log = LoggerFactory.getLogger(PerformanceNotificationService.class);
 
     private final PerformanceNotificationRepository notificationRepository;
 
@@ -20,6 +24,7 @@ public class PerformanceNotificationService {
     }
 
     public void createNotification(Long userId, String message) {
+        log.debug("Create performance notification userId={}", userId);
         PerformanceNotification notification = new PerformanceNotification();
         notification.setUserId(userId);
         notification.setMessage(message);
@@ -27,10 +32,12 @@ public class PerformanceNotificationService {
     }
 
     public List<PerformanceNotification> getNotifications(Long userId) {
+        log.debug("Get performance notifications userId={}", userId);
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
     public void markAsRead(Long notificationId) {
+        log.debug("Mark performance notification read notificationId={}", notificationId);
         PerformanceNotification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
         notification.setReadFlag(true);

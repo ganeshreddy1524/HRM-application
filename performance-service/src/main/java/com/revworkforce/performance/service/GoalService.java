@@ -14,12 +14,16 @@ import com.revworkforce.performance.exception.UnauthorizedException;
 import com.revworkforce.performance.repository.GoalRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class GoalService {
+
+    private static final Logger log = LoggerFactory.getLogger(GoalService.class);
 
     private final GoalRepository goalRepository;
     private final EmployeeServiceClient employeeServiceClient;
@@ -36,6 +40,7 @@ public class GoalService {
 
     @CircuitBreaker(name = "employee-service", fallbackMethod = "createGoalFallback")
     public GoalResponse createGoal(Long userId, GoalRequest request) {
+        log.info("Create goal userId={}", userId);
         // Get employee by userId
         EmployeeDto employee = employeeServiceClient.getEmployeeByUserId(userId);
         if (employee == null) {
@@ -50,11 +55,13 @@ public class GoalService {
         goal.setStatus(GoalStatus.NOT_STARTED);
 
         Goal savedGoal = goalRepository.save(goal);
+        log.info("Create goal success goalId={} employeeId={}", savedGoal.getId(), savedGoal.getEmployeeId());
         return mapToResponse(savedGoal);
     }
 
     @CircuitBreaker(name = "employee-service", fallbackMethod = "getMyGoalsFallback")
     public List<GoalResponse> getMyGoals(Long userId) {
+        log.debug("Get my goals userId={}", userId);
         // Get employee by userId
         EmployeeDto employee = employeeServiceClient.getEmployeeByUserId(userId);
         if (employee == null) {
@@ -69,6 +76,7 @@ public class GoalService {
 
     @CircuitBreaker(name = "employee-service", fallbackMethod = "getTeamGoalsFallback")
     public TeamGoalResponse getTeamGoals(Long userId, String role) {
+        log.info("Get team goals userId={} role={}", userId, role);
         // Only manager/admin can view team goals
         if (!role.equals("MANAGER") && !role.equals("ADMIN")) {
             throw new UnauthorizedException("Only managers and admins can view team goals");
@@ -99,6 +107,7 @@ public class GoalService {
     }
 
     public GoalResponse updateGoalStatus(Long userId, Long goalId, GoalStatusUpdateRequest request) {
+        log.info("Update goal status userId={} goalId={} status={}", userId, goalId, request.getStatus());
         Goal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Goal not found with id: " + goalId));
 
@@ -116,6 +125,7 @@ public class GoalService {
 
     @CircuitBreaker(name = "employee-service", fallbackMethod = "addManagerCommentFallback")
     public GoalResponse addManagerComment(Long userId, Long goalId, GoalCommentRequest request, String role) {
+        log.info("Add manager comment userId={} role={} goalId={}", userId, role, goalId);
         // Only manager/admin can add comments
         if (!role.equals("MANAGER") && !role.equals("ADMIN")) {
             throw new UnauthorizedException("Only managers and admins can add comments to goals");

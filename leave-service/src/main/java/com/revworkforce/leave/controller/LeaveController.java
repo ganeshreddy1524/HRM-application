@@ -4,6 +4,8 @@ import com.revworkforce.leave.dto.*;
 import com.revworkforce.leave.service.LeaveService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/leaves")
 public class LeaveController {
+
+    private static final Logger log = LoggerFactory.getLogger(LeaveController.class);
 
     private final LeaveService leaveService;
 
@@ -26,6 +30,7 @@ public class LeaveController {
             HttpServletRequest httpRequest) {
 
         Long userId = getUserIdFromRequest(httpRequest);
+        log.info("Apply leave userId={} type={} start={} end={}", userId, request.getLeaveType(), request.getStartDate(), request.getEndDate());
         LeaveResponse response = leaveService.applyLeave(userId, request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -33,6 +38,7 @@ public class LeaveController {
     @GetMapping("/my")
     public ResponseEntity<List<LeaveResponse>> getMyLeaves(HttpServletRequest httpRequest) {
         Long userId = getUserIdFromRequest(httpRequest);
+        log.info("Get my leaves userId={}", userId);
         List<LeaveResponse> leaves = leaveService.getMyLeaves(userId);
         return ResponseEntity.ok(leaves);
     }
@@ -40,6 +46,7 @@ public class LeaveController {
     @GetMapping("/summary")
     public ResponseEntity<LeaveSummaryResponse> getLeaveSummary(HttpServletRequest httpRequest) {
         Long userId = getUserIdFromRequest(httpRequest);
+        log.info("Get leave summary userId={}", userId);
         LeaveSummaryResponse summary = leaveService.getLeaveSummary(userId);
         return ResponseEntity.ok(summary);
     }
@@ -48,6 +55,7 @@ public class LeaveController {
     public ResponseEntity<TeamLeaveResponse> getTeamLeaves(HttpServletRequest httpRequest) {
         Long userId = getUserIdFromRequest(httpRequest);
         String role = getRoleFromRequest(httpRequest);
+        log.info("Get team leaves userId={} role={}", userId, role);
         TeamLeaveResponse teamLeaves = leaveService.getTeamLeaves(userId, role);
         return ResponseEntity.ok(teamLeaves);
     }
@@ -58,6 +66,7 @@ public class LeaveController {
             HttpServletRequest httpRequest) {
 
         Long userId = getUserIdFromRequest(httpRequest);
+        log.info("Cancel leave userId={} leaveId={}", userId, id);
         LeaveResponse response = leaveService.cancelLeave(userId, id);
         return ResponseEntity.ok(response);
     }
@@ -70,6 +79,7 @@ public class LeaveController {
 
         Long userId = getUserIdFromRequest(httpRequest);
         String role = getRoleFromRequest(httpRequest);
+        log.info("Approve leave userId={} role={} leaveId={}", userId, role, id);
         LeaveResponse response = leaveService.approveLeave(userId, id, request, role);
         return ResponseEntity.ok(response);
     }
@@ -82,6 +92,7 @@ public class LeaveController {
 
         Long userId = getUserIdFromRequest(httpRequest);
         String role = getRoleFromRequest(httpRequest);
+        log.info("Reject leave userId={} role={} leaveId={}", userId, role, id);
         LeaveResponse response = leaveService.rejectLeave(userId, id, request, role);
         return ResponseEntity.ok(response);
     }

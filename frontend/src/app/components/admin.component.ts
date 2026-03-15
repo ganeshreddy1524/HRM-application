@@ -40,6 +40,20 @@ import { ApiService } from '../services/api.service';
             <option value="MANAGER">Manager</option>
             <option value="ADMIN">Admin</option>
           </select>
+
+          <ng-container *ngIf="empForm.get('role')?.value === 'EMPLOYEE'">
+            <select class="form-select mb-2" formControlName="managerId">
+              <option value="">Select Manager</option>
+              <option *ngFor="let m of managers" [value]="m.id">{{ m.employeeId }} - {{ m.fullName }}</option>
+            </select>
+            <div class="text-danger small mb-2" *ngIf="isInvalid('managerId')">
+              <span *ngIf="empForm.get('managerId')?.errors?.['required']">Manager is required.</span>
+            </div>
+            <div class="text-muted small mb-2" *ngIf="managers.length === 0">
+              No managers available. Create a manager first.
+            </div>
+          </ng-container>
+
           <div class="text-danger small mb-2" *ngIf="createEmpError">{{ createEmpError }}</div>
           <button type="submit" class="btn btn-sm btn-primary w-100">Create Employee</button>
         </form>
@@ -142,6 +156,8 @@ import { ApiService } from '../services/api.service';
 })
 export class AdminComponent implements OnInit {
   users: any[] = [];
+  employees: any[] = [];
+  managers: any[] = [];
   departments: any[] = [];
   designations: any[] = [];
   announcements: any[] = [];
@@ -170,17 +186,47 @@ export class AdminComponent implements OnInit {
         Validators.minLength(8),
         Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$')
       ]],
-      role: ['EMPLOYEE', Validators.required]
+      role: ['EMPLOYEE', Validators.required],
+      managerId: ['']
     });
     this.depForm = this.fb.group({ name: ['', Validators.required] });
     this.desForm = this.fb.group({ name: ['', Validators.required] });
     this.annForm = this.fb.group({ title: ['', Validators.required], content: ['', Validators.required] });
+
+    // Manager is required only when creating an EMPLOYEE.
+    const applyManagerValidation = (role: string) => {
+      const managerControl = this.empForm.get('managerId');
+      if (!managerControl) return;
+
+      if (role === 'EMPLOYEE') {
+        managerControl.setValidators([Validators.required]);
+      } else {
+        managerControl.clearValidators();
+        managerControl.setValue('');
+      }
+      managerControl.updateValueAndValidity({ emitEvent: false });
+    };
+
+    this.empForm.get('role')?.valueChanges.subscribe(role => applyManagerValidation((role || '').toString()));
+    applyManagerValidation((this.empForm.get('role')?.value || '').toString());
   }
 
   ngOnInit(): void { this.load(); }
 
   load(): void {
     this.api.get<any[]>('/users').subscribe(r => this.users = r);
+    this.api.get<any[]>('/employees').subscribe({
+      next: r => {
+        this.employees = r || [];
+        this.managers = this.employees
+          .filter(e => e?.roleId === 2 && (e?.status || '').toString().toUpperCase() === 'ACTIVE')
+          .sort((a, b) => ((a?.fullName || '') as string).localeCompare((b?.fullName || '') as string));
+      },
+      error: () => {
+        this.employees = [];
+        this.managers = [];
+      }
+    });
     this.api.get<any>('/leaves/team').subscribe({
       next: r => this.teamLeaves = r?.leaves || [],
       error: () => this.teamLeaves = []
@@ -201,6 +247,21 @@ export class AdminComponent implements OnInit {
 
     const employeeId = (this.empForm.value.employeeId || '').toString().trim();
     const email = (this.empForm.value.email || '').toString().trim().toLowerCase();
+    const role = (this.empForm.value.role || '').toString().trim();
+    const rawManagerId = (this.empForm.value.managerId || '').toString().trim();
+    const managerId = rawManagerId ? Number(rawManagerId) : null;
+
+    if (role === 'EMPLOYEE') {
+      if (!managerId) {
+        this.createEmpError = 'Please select a manager for the employee.';
+        return;
+      }
+      const validManager = this.managers.some(m => Number(m?.id) === managerId);
+      if (!validManager) {
+        this.createEmpError = 'Selected manager is invalid. Please reload and try again.';
+        return;
+      }
+    }
 
     const duplicateEmployeeId = this.users.some(u => (u.employeeId || '').toString().trim() === employeeId);
     if (duplicateEmployeeId) {
@@ -219,7 +280,15 @@ export class AdminComponent implements OnInit {
       return;
     }
 
-    this.api.post<any>('/users', this.empForm.value).subscribe({
+    const userPayload = {
+      employeeId,
+      fullName: this.empForm.value.fullName,
+      email,
+      password: this.empForm.value.password,
+      role
+    };
+
+    this.api.post<any>('/users', userPayload).subscribe({
       next: createdUser => {
         const defaultDepartmentId = this.departments[0].id;
         const defaultDesignationId = this.designations[0].id;
@@ -235,15 +304,15 @@ export class AdminComponent implements OnInit {
           designationId: defaultDesignationId,
           joiningDate: new Date().toISOString().slice(0, 10),
           salary: 1,
-          managerId: null,
-          roleId: this.mapRoleToId(this.empForm.value.role)
+          managerId: role === 'EMPLOYEE' ? managerId : null,
+          roleId: this.mapRoleToId(role)
         };
 
         this.api.post('/employees', employeePayload).subscribe({
           next: () => {
             this.createEmpError = '';
             this.empSubmitted = false;
-            this.empForm.reset({ role: 'EMPLOYEE' });
+            this.empForm.reset({ role: 'EMPLOYEE', managerId: '' });
             this.load();
           },
           error: err => {

@@ -3,6 +3,7 @@ package com.revworkforce.leave.dto;
 public class EmployeeDto {
 
     private Long id;
+    private Long userId;
     private String fullName;
     private Long managerId;
 
@@ -16,6 +17,13 @@ public class EmployeeDto {
         this.managerId = managerId;
     }
 
+    public EmployeeDto(Long id, Long userId, String fullName, Long managerId) {
+        this.id = id;
+        this.userId = userId;
+        this.fullName = fullName;
+        this.managerId = managerId;
+    }
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -23,6 +31,14 @@ public class EmployeeDto {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getFullName() {

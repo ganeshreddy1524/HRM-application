@@ -4,6 +4,8 @@ import com.revworkforce.auth.enums.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +18,8 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
+
     @Value("${jwt.secret}")
     private String secret;
 
@@ -27,6 +31,7 @@ public class JwtService {
     }
 
     public String generateToken(Long userId, String email, Role role) {
+        log.debug("Generate JWT userId={} role={}", userId, role != null ? role.name() : null);
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
         claims.put("role", role.name());
@@ -48,6 +53,7 @@ public class JwtService {
                     .parseSignedClaims(token);
             return !isTokenExpired(token);
         } catch (Exception e) {
+            log.debug("JWT validation failed");
             return false;
         }
     }

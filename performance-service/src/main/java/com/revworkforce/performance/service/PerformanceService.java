@@ -13,6 +13,8 @@ import com.revworkforce.performance.exception.UnauthorizedException;
 import com.revworkforce.performance.repository.PerformanceReviewRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class PerformanceService {
+
+    private static final Logger log = LoggerFactory.getLogger(PerformanceService.class);
 
     private final PerformanceReviewRepository reviewRepository;
     private final EmployeeServiceClient employeeServiceClient;
@@ -37,6 +41,7 @@ public class PerformanceService {
 
     @CircuitBreaker(name = "employee-service", fallbackMethod = "createReviewFallback")
     public PerformanceReviewResponse createReview(Long reviewerId, PerformanceReviewRequest request, String role) {
+        log.info("Create review reviewerId={} role={} employeeId={}", reviewerId, role, request.getEmployeeId());
         // Only manager/admin can create reviews for employees
         if (!role.equals("MANAGER") && !role.equals("ADMIN")) {
             throw new UnauthorizedException("Only managers and admins can create performance reviews");
@@ -58,6 +63,7 @@ public class PerformanceService {
         review.setStatus(ReviewStatus.DRAFT);
 
         PerformanceReview savedReview = reviewRepository.save(review);
+        log.info("Create review success reviewId={}", savedReview.getId());
 
         // Notify employee
         notificationService.notifyReviewCreated(savedReview);
@@ -67,6 +73,7 @@ public class PerformanceService {
 
     @CircuitBreaker(name = "employee-service", fallbackMethod = "getMyReviewsFallback")
     public List<PerformanceReviewResponse> getMyReviews(Long userId) {
+        log.debug("Get my reviews userId={}", userId);
         // Get employee by userId
         EmployeeDto employee = employeeServiceClient.getEmployeeByUserId(userId);
         if (employee == null) {
@@ -81,6 +88,7 @@ public class PerformanceService {
 
     @CircuitBreaker(name = "employee-service", fallbackMethod = "getTeamReviewsFallback")
     public TeamReviewResponse getTeamReviews(Long userId, String role) {
+        log.info("Get team reviews userId={} role={}", userId, role);
         // Only manager/admin can view team reviews
         if (!role.equals("MANAGER") && !role.equals("ADMIN")) {
             throw new UnauthorizedException("Only managers and admins can view team reviews");
@@ -127,6 +135,7 @@ public class PerformanceService {
 
     @CircuitBreaker(name = "employee-service", fallbackMethod = "provideFeedbackFallback")
     public PerformanceReviewResponse provideFeedback(Long userId, Long reviewId, ReviewFeedbackRequest request, String role) {
+        log.info("Provide feedback userId={} role={} reviewId={}", userId, role, reviewId);
         // Only manager/admin can provide feedback
         if (!role.equals("MANAGER") && !role.equals("ADMIN")) {
             throw new UnauthorizedException("Only managers and admins can provide feedback");

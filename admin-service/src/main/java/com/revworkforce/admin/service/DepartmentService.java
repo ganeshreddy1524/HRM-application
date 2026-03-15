@@ -6,6 +6,8 @@ import com.revworkforce.admin.entity.Department;
 import com.revworkforce.admin.exception.DuplicateResourceException;
 import com.revworkforce.admin.exception.ResourceNotFoundException;
 import com.revworkforce.admin.repository.DepartmentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 @Service
 public class DepartmentService {
 
+    private static final Logger log = LoggerFactory.getLogger(DepartmentService.class);
+
     private final DepartmentRepository departmentRepository;
 
     public DepartmentService(DepartmentRepository departmentRepository) {
@@ -22,12 +26,14 @@ public class DepartmentService {
     }
 
     public List<DepartmentResponse> getAll() {
+        log.debug("Get all departments");
         return departmentRepository.findAll().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     public DepartmentResponse getById(Long id) {
+        log.debug("Get department id={}", id);
         Department department = departmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + id));
         return toResponse(department);
@@ -35,6 +41,7 @@ public class DepartmentService {
 
     @Transactional
     public DepartmentResponse create(DepartmentRequest request) {
+        log.info("Create department name={}", request.getName());
         if (departmentRepository.existsByName(request.getName())) {
             throw new DuplicateResourceException("Department with name '" + request.getName() + "' already exists");
         }
@@ -44,11 +51,13 @@ public class DepartmentService {
                 .build();
 
         Department saved = departmentRepository.save(department);
+        log.info("Create department success id={}", saved.getId());
         return toResponse(saved);
     }
 
     @Transactional
     public void delete(Long id) {
+        log.info("Delete department id={}", id);
         if (!departmentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Department not found with id: " + id);
         }

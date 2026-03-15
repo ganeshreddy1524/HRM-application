@@ -8,6 +8,8 @@ import com.revworkforce.admin.exception.ResourceNotFoundException;
 import com.revworkforce.admin.exception.UnauthorizedException;
 import com.revworkforce.admin.repository.AdminNotificationRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class AdminNotificationService {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminNotificationService.class);
 
     private final AdminNotificationRepository notificationRepository;
     private final EmployeeServiceClient employeeServiceClient;
@@ -28,6 +32,7 @@ public class AdminNotificationService {
     }
 
     public List<AdminNotificationResponse> getNotifications(Long userId) {
+        log.debug("Get notifications userId={}", userId);
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -35,6 +40,7 @@ public class AdminNotificationService {
 
     @Transactional
     public AdminNotificationResponse sendNotification(Long senderUserId, String senderRole, NotificationSendRequest request) {
+        log.info("Send notification senderUserId={} role={} sendToAll={}", senderUserId, senderRole, request.getSendToAll());
         if (Boolean.TRUE.equals(request.getSendToAll())) {
             if (!"ADMIN".equals(senderRole)) {
                 throw new UnauthorizedException("Only administrators can broadcast notifications");
@@ -58,11 +64,13 @@ public class AdminNotificationService {
                 .build();
 
         AdminNotification saved = notificationRepository.save(notification);
+        log.info("Send notification success notificationId={}", saved.getId());
         return toResponse(saved);
     }
     @Transactional
     @CircuitBreaker(name = "employee-service", fallbackMethod = "broadcastNotificationFallback")
     public List<AdminNotificationResponse> broadcastNotification(String senderRole, String message) {
+        log.info("Broadcast notification role={}", senderRole);
         if (!"ADMIN".equals(senderRole)) {
             throw new UnauthorizedException("Only administrators can broadcast notifications");
         }
@@ -81,6 +89,7 @@ public class AdminNotificationService {
         }
 
         List<AdminNotification> savedNotifications = notificationRepository.saveAll(notifications);
+        log.info("Broadcast notification created count={}", savedNotifications.size());
         return savedNotifications.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -93,6 +102,7 @@ public class AdminNotificationService {
 
     @Transactional
     public void markAsRead(Long notificationId, Long userId) {
+        log.debug("Mark notification read userId={} notificationId={}", userId, notificationId);
         AdminNotification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
 
@@ -106,6 +116,7 @@ public class AdminNotificationService {
     }
 
     public long getUnreadCount(Long userId) {
+        log.debug("Get unread count userId={}", userId);
         return notificationRepository.countByUserIdAndReadFlagFalse(userId);
     }
 

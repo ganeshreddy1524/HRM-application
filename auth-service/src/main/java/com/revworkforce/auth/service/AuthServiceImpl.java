@@ -8,6 +8,8 @@ import com.revworkforce.auth.exception.AuthException;
 import com.revworkforce.auth.exception.ResourceNotFoundException;
 import com.revworkforce.auth.repository.RoleMasterRepository;
 import com.revworkforce.auth.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +18,8 @@ import java.util.List;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
     private final UserRepository userRepository;
     private final RoleMasterRepository roleMasterRepository;
@@ -39,21 +43,25 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         String username = request.getUsername().trim();
+        log.info("Login attempt username={}", username);
         User user = userRepository.findByEmail(username)
                 .or(() -> userRepository.findByEmployeeId(username))
                 .orElseThrow(() -> new AuthException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            log.warn("Login failed (password mismatch) userId={}", user.getId());
             throw new AuthException("Invalid email or password");
         }
 
         if ("INACTIVE".equals(user.getStatus())) {
+            log.warn("Login rejected (inactive) userId={}", user.getId());
             throw new AuthException("Account is inactive. Please contact administrator.");
         }
 
         Role role = Role.fromId(user.getRoleId());
         String accessToken = jwtService.generateToken(user.getId(), user.getEmail(), role);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+        log.info("Login success userId={} role={}", user.getId(), role.name());
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -71,6 +79,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void resetPassword(PasswordResetRequest request) {
+        log.info("Reset password attempt employeeId={} email={}", request.getEmployeeId(), request.getEmail());
         User user = userRepository
                 .findByEmployeeIdAndEmail(
                         request.getEmployeeId(),
@@ -83,6 +92,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Invalidate all refresh tokens for this user
         refreshTokenService.deleteByUserId(user.getId());
+        log.info("Reset password success userId={}", user.getId());
     }
 
     @Override
@@ -96,6 +106,7 @@ public class AuthServiceImpl implements AuthService {
                 User user = userRepository.findById(userId)
                         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+                log.debug("Token validated userId={} role={}", userId, role);
                 return UserValidationResponse.builder()
                         .userId(userId)
                         .email(email)
@@ -105,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
                         .build();
             }
         } catch (Exception e) {
-            // Token is invalid
+            log.debug("Token validation failed");
         }
 
         return UserValidationResponse.builder()
@@ -116,6 +127,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
+        log.info("Refresh token attempt");
         RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken())
                 .orElseThrow(() -> new AuthException("Invalid refresh token"));
 
@@ -126,6 +138,7 @@ public class AuthServiceImpl implements AuthService {
 
         Role role = Role.fromId(user.getRoleId());
         String accessToken = jwtService.generateToken(user.getId(), user.getEmail(), role);
+        log.info("Refresh token success userId={} role={}", user.getId(), role.name());
 
         return TokenRefreshResponse.builder()
                 .accessToken(accessToken)
@@ -137,17 +150,20 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void logout(Long userId) {
+        log.info("Logout userId={}", userId);
         refreshTokenService.deleteByUserId(userId);
     }
 
     @Override
     public User getUserById(Long userId) {
+        log.debug("Get user by id userId={}", userId);
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
     }
     @Override
     @Transactional
     public User createUser(AdminCreateUserRequest request) {
+        log.info("Create user attempt employeeId={} email={}", request.getEmployeeId(), request.getEmail());
         // Validate employee ID is numeric
         try {
             Long.parseLong(request.getEmployeeId().trim());
@@ -182,22 +198,27 @@ public class AuthServiceImpl implements AuthService {
                 .status("ACTIVE")
                 .build();
 
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        log.info("Create user success userId={} roleId={}", saved.getId(), saved.getRoleId());
+        return saved;
     }
 
     @Override
     public List<User> getAllUsers() {
+        log.debug("Get all users");
         return userRepository.findAll();
     }
 
     @Override
     public List<User> searchUsers(String query) {
+        log.debug("Search users query={}", query);
         return userRepository.searchByNameOrEmployeeId(query);
     }
 
     @Override
     @Transactional
     public User setUserActive(Long userId, boolean active) {
+        log.info("Set user active userId={} active={}", userId, active);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setStatus(active ? "ACTIVE" : "INACTIVE");

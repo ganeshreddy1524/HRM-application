@@ -8,6 +8,8 @@ import com.revworkforce.leave.enums.LeaveStatus;
 import com.revworkforce.leave.exception.LeaveException;
 import com.revworkforce.leave.exception.ResourceNotFoundException;
 import com.revworkforce.leave.repository.LeaveRequestRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class LeaveService {
+
+    private static final Logger log = LoggerFactory.getLogger(LeaveService.class);
 
     private final LeaveRequestRepository leaveRepository;
     private final EmployeeServiceClient employeeServiceClient;
@@ -39,6 +43,7 @@ public class LeaveService {
 
     @Transactional
     public LeaveResponse applyLeave(Long userId, LeaveApplyRequest request) {
+        log.info("Apply leave userId={} type={} start={} end={}", userId, request.getLeaveType(), request.getStartDate(), request.getEndDate());
         // Validate dates
         if (!request.isValid()) {
             throw new LeaveException("End date must be greater than or equal to start date");
@@ -75,11 +80,13 @@ public class LeaveService {
 
         // Send notification to manager
         notificationService.notifyLeaveSubmitted(leave);
+        log.info("Apply leave created leaveId={} employeeId={}", leave.getId(), leave.getEmployeeId());
 
         return mapToResponse(leave, employee, null);
     }
 
     public List<LeaveResponse> getMyLeaves(Long userId) {
+        log.debug("Get my leaves userId={}", userId);
         EmployeeDto employee = employeeServiceClient.getEmployeeByUserId(userId);
         if (employee == null) {
             throw new ResourceNotFoundException("Employee not found for user ID: " + userId);
@@ -104,6 +111,7 @@ public class LeaveService {
     }
 
     public LeaveSummaryResponse getLeaveSummary(Long userId) {
+        log.debug("Get leave summary userId={}", userId);
         EmployeeDto employee = employeeServiceClient.getEmployeeByUserId(userId);
         if (employee == null) {
             throw new ResourceNotFoundException("Employee not found for user ID: " + userId);
@@ -248,16 +256,22 @@ public class LeaveService {
         boolean isManager = false;
 
         if (!isAdmin) {
+            if (!"MANAGER".equals(role)) {
+                throw new LeaveException("Only the assigned manager or admin can approve this leave request");
+            }
             currentEmployee = employeeServiceClient.getEmployeeByUserId(userId);
             if (currentEmployee == null) {
                 throw new ResourceNotFoundException("Employee not found for user ID: " + userId);
+            }
+            if (applicant.getManagerId() == null) {
+                throw new LeaveException("Employee has no manager assigned. Only admin can approve this leave request.");
             }
             isManager = applicant.getManagerId() != null &&
                     applicant.getManagerId().equals(currentEmployee.getId());
         }
 
         if (!isManager && !isAdmin) {
-            throw new LeaveException("You don't have permission to approve this leave request");
+            throw new LeaveException("Only the assigned manager or admin can approve this leave request");
         }
 
         if (leave.getStatus() != LeaveStatus.PENDING) {
@@ -293,16 +307,22 @@ public class LeaveService {
         boolean isManager = false;
 
         if (!isAdmin) {
+            if (!"MANAGER".equals(role)) {
+                throw new LeaveException("Only the assigned manager or admin can reject this leave request");
+            }
             currentEmployee = employeeServiceClient.getEmployeeByUserId(userId);
             if (currentEmployee == null) {
                 throw new ResourceNotFoundException("Employee not found for user ID: " + userId);
+            }
+            if (applicant.getManagerId() == null) {
+                throw new LeaveException("Employee has no manager assigned. Only admin can reject this leave request.");
             }
             isManager = applicant.getManagerId() != null &&
                     applicant.getManagerId().equals(currentEmployee.getId());
         }
 
         if (!isManager && !isAdmin) {
-            throw new LeaveException("You don't have permission to reject this leave request");
+            throw new LeaveException("Only the assigned manager or admin can reject this leave request");
         }
 
         if (leave.getStatus() != LeaveStatus.PENDING) {

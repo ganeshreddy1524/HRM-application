@@ -6,6 +6,8 @@ import com.revworkforce.performance.dto.ReviewFeedbackRequest;
 import com.revworkforce.performance.dto.TeamReviewResponse;
 import com.revworkforce.performance.service.PerformanceService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/performance")
 public class PerformanceController {
+
+    private static final Logger log = LoggerFactory.getLogger(PerformanceController.class);
 
     private final PerformanceService performanceService;
 
@@ -28,6 +32,7 @@ public class PerformanceController {
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-User-Role") String role,
             @Valid @RequestBody PerformanceReviewRequest request) {
+        log.info("Create performance review reviewerUserId={} role={} employeeId={}", userId, role, request.getEmployeeId());
         PerformanceReviewResponse response = performanceService.createReview(userId, request, role);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -35,6 +40,7 @@ public class PerformanceController {
     @GetMapping("/my")
     public ResponseEntity<List<PerformanceReviewResponse>> getMyReviews(
             @RequestHeader("X-User-Id") Long userId) {
+        log.info("Get my reviews userId={}", userId);
         List<PerformanceReviewResponse> reviews = performanceService.getMyReviews(userId);
         return ResponseEntity.ok(reviews);
     }
@@ -43,6 +49,7 @@ public class PerformanceController {
     public ResponseEntity<TeamReviewResponse> getTeamReviews(
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-User-Role") String role) {
+        log.info("Get team reviews userId={} role={}", userId, role);
         TeamReviewResponse response = performanceService.getTeamReviews(userId, role);
         return ResponseEntity.ok(response);
     }
@@ -51,6 +58,7 @@ public class PerformanceController {
     public ResponseEntity<PerformanceReviewResponse> submitReview(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long id) {
+        log.info("Submit review userId={} reviewId={}", userId, id);
         PerformanceReviewResponse response = performanceService.submitReview(userId, id);
         return ResponseEntity.ok(response);
     }
@@ -61,6 +69,7 @@ public class PerformanceController {
             @RequestHeader("X-User-Role") String role,
             @PathVariable Long id,
             @Valid @RequestBody ReviewFeedbackRequest request) {
+        log.info("Provide feedback userId={} role={} reviewId={}", userId, role, id);
         PerformanceReviewResponse response = performanceService.provideFeedback(userId, id, request, role);
         return ResponseEntity.ok(response);
     }

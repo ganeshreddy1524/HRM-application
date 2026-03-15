@@ -8,6 +8,8 @@ import com.revworkforce.employee.exception.ResourceNotFoundException;
 import com.revworkforce.employee.exception.UnauthorizedException;
 import com.revworkforce.employee.repository.EmployeeRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class EmployeeService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmployeeService.class);
 
     private final EmployeeRepository employeeRepository;
     private final AdminServiceClient adminServiceClient;
@@ -32,6 +36,7 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public EmployeeProfileResponse getProfile(Long userId) {
+        log.debug("Get profile userId={}", userId);
         Employee employee = getOrCreateEmployeeProfile(userId);
 
         String departmentName = getDepartmentName(employee.getDepartmentId());
@@ -56,6 +61,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeProfileResponse updateProfile(Long userId, EmployeeUpdateRequest request) {
+        log.info("Update profile userId={}", userId);
         Employee employee = getOrCreateEmployeeProfile(userId);
 
         // Only allow updating phone, address, and emergencyContact
@@ -70,6 +76,7 @@ public class EmployeeService {
         }
 
         employee = employeeRepository.save(employee);
+        log.info("Update profile saved employeeId={} userId={}", employee.getId(), userId);
 
         String departmentName = getDepartmentName(employee.getDepartmentId());
         String designationName = getDesignationName(employee.getDesignationId());
@@ -93,9 +100,25 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse createEmployee(EmployeeCreateRequest request) {
+        log.info("Create employee userId={} roleId={} managerId={}", request.getUserId(), request.getRoleId(), request.getManagerId());
         // Check if employee already exists for this userId
         if (employeeRepository.existsByUserId(request.getUserId())) {
             throw new IllegalArgumentException("Employee already exists for user ID: " + request.getUserId());
+        }
+
+        // Enforce manager assignment for employees and validate manager role.
+        if (request.getRoleId() != null && request.getRoleId() == 1) {
+            if (request.getManagerId() == null) {
+                throw new IllegalArgumentException("Manager is required for employees");
+            }
+        }
+        if (request.getManagerId() != null) {
+            Employee manager = employeeRepository.findById(request.getManagerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Manager not found with ID: " + request.getManagerId()));
+            Integer managerRoleId = manager.getRoleId();
+            if (managerRoleId == null || (managerRoleId != 2 && managerRoleId != 3)) {
+                throw new IllegalArgumentException("Selected manager is not a manager");
+            }
         }
 
         Employee employee = Employee.builder()
@@ -115,6 +138,7 @@ public class EmployeeService {
                 .build();
 
         employee = employeeRepository.save(employee);
+        log.info("Create employee saved employeeId={} userId={}", employee.getId(), employee.getUserId());
 
         return toEmployeeResponse(employee);
     }
@@ -147,9 +171,18 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + id));
 
-        // Verify manager exists
-        if (!employeeRepository.existsById(managerId)) {
-            throw new ResourceNotFoundException("Manager not found with ID: " + managerId);
+        if (managerId == null) {
+            throw new IllegalArgumentException("Manager ID is required");
+        }
+        if (employee.getId().equals(managerId)) {
+            throw new IllegalArgumentException("Employee cannot be their own manager");
+        }
+
+        Employee manager = employeeRepository.findById(managerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Manager not found with ID: " + managerId));
+        Integer managerRoleId = manager.getRoleId();
+        if (managerRoleId == null || (managerRoleId != 2 && managerRoleId != 3)) {
+            throw new IllegalArgumentException("Selected manager is not a manager");
         }
 
         employee.setManagerId(managerId);
@@ -184,6 +217,7 @@ public class EmployeeService {
 
         return EmployeeSummaryResponse.builder()
                 .id(employee.getId())
+                .userId(employee.getUserId())
                 .fullName(employee.getFullName())
                 .email(employee.getEmail())
                 .managerId(employee.getManagerId())
@@ -197,6 +231,7 @@ public class EmployeeService {
 
         return EmployeeSummaryResponse.builder()
                 .id(employee.getId())
+                .userId(employee.getUserId())
                 .fullName(employee.getFullName())
                 .email(employee.getEmail())
                 .managerId(employee.getManagerId())
@@ -208,6 +243,7 @@ public class EmployeeService {
         return employeeRepository.findAllById(ids).stream()
                 .map(employee -> EmployeeSummaryResponse.builder()
                         .id(employee.getId())
+                        .userId(employee.getUserId())
                         .fullName(employee.getFullName())
                         .email(employee.getEmail())
                         .managerId(employee.getManagerId())
@@ -263,6 +299,7 @@ public class EmployeeService {
             Map<String, Object> department = adminServiceClient.getDepartmentById(departmentId);
             return (String) department.get("name");
         } catch (Exception e) {
+            log.debug("Department lookup failed departmentId={}", departmentId);
             return "Unknown Department";
         }
     }
@@ -273,6 +310,7 @@ public class EmployeeService {
             Map<String, Object> designation = adminServiceClient.getDesignationById(designationId);
             return (String) designation.get("name");
         } catch (Exception e) {
+            log.debug("Designation lookup failed designationId={}", designationId);
             return "Unknown Designation";
         }
     }
@@ -282,6 +320,7 @@ public class EmployeeService {
             Employee manager = employeeRepository.findById(managerId).orElse(null);
             return manager != null ? manager.getFullName() : "Unknown Manager";
         } catch (Exception e) {
+            log.debug("Manager lookup failed managerId={}", managerId);
             return "Unknown Manager";
         }
     }
@@ -297,6 +336,7 @@ public class EmployeeService {
     private Employee getOrCreateEmployeeProfile(Long userId) {
         return employeeRepository.findByUserId(userId)
                 .orElseGet(() -> {
+                    log.info("Creating new employee profile userId={}", userId);
                     Map<String, Object> user = authServiceClient.getUserById(userId);
                     if (user == null) {
                         throw new ResourceNotFoundException("Employee not found for user ID: " + userId);
@@ -337,6 +377,7 @@ public class EmployeeService {
             Map<String, Object> authUser = authServiceClient.getUserById(userId);
             return String.valueOf(authUser.getOrDefault("employeeId", userId));
         } catch (Exception e) {
+            log.debug("Employee code lookup failed userId={}", userId);
             return String.valueOf(userId);
         }
     }

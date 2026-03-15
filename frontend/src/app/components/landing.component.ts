@@ -1,5 +1,5 @@
 ﻿import { Component, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth.service';
@@ -77,6 +77,9 @@ import { UiStateService } from '../services/ui-state.service';
         <div class="mb-3">
           <label class="form-label">Employee ID or Email</label>
           <input class="form-control" formControlName="username" />
+          <div class="text-danger small mt-1" *ngIf="form.controls.username.touched && form.controls.username.errors?.employeeIdOrEmail">
+            Invalid email format.
+          </div>
         </div>
         <div class="mb-3">
           <label class="form-label">Password</label>
@@ -133,6 +136,16 @@ export class LandingComponent implements OnInit, OnDestroy {
   resetForm: FormGroup;
   private loginPanelSub?: Subscription;
 
+  private static employeeIdOrEmail(control: AbstractControl): ValidationErrors | null {
+    const raw = (control.value ?? '').toString().trim();
+    if (!raw) return null;
+
+    // Allows numeric employeeId or a standard email format.
+    if (/^\d+$/.test(raw)) return null;
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+    return emailOk ? null : { employeeIdOrEmail: true };
+  }
+
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
@@ -140,7 +153,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     private uiState: UiStateService
   ) {
     this.form = this.fb.group({
-      username: ['', Validators.required],
+      username: ['', [Validators.required, LandingComponent.employeeIdOrEmail]],
       password: ['', Validators.required]
     });
 
@@ -185,7 +198,12 @@ export class LandingComponent implements OnInit, OnDestroy {
   }
 
   submit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.error = '';
     const payload = {
       username: (this.form.value.username || '').toString().trim(),
       password: (this.form.value.password || '').toString().trim()
@@ -195,7 +213,16 @@ export class LandingComponent implements OnInit, OnDestroy {
         this.uiState.closeLoginPanel();
         this.router.navigate(['/dashboard']);
       },
-      error: (err) => this.error = err?.error?.error || 'Invalid credentials'
+      error: (err) => {
+        if (err?.status === 0) {
+          this.error = 'Unable to reach server. Please try again.';
+          return;
+        }
+
+        const backend = err?.error;
+        // auth-service GlobalExceptionHandler returns `{ error: 'Authentication Error', message: '...' }`
+        this.error = backend?.message || (backend?.error && backend.error !== 'Authentication Error' ? backend.error : '') || 'Invalid email or password.';
+      }
     });
   }
 

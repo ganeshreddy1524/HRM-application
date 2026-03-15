@@ -2,9 +2,11 @@ package com.revworkforce.employee.service;
 
 import com.revworkforce.employee.client.AdminServiceClient;
 import com.revworkforce.employee.client.AuthServiceClient;
+import com.revworkforce.employee.dto.EmployeeCreateRequest;
 import com.revworkforce.employee.dto.EmployeeProfileResponse;
 import com.revworkforce.employee.dto.EmployeeUpdateRequest;
 import com.revworkforce.employee.entity.Employee;
+import com.revworkforce.employee.exception.ResourceNotFoundException;
 import com.revworkforce.employee.repository.EmployeeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -58,5 +61,45 @@ class EmployeeServiceTest {
         assertEquals("Hyderabad", response.getAddress());
         assertEquals("IT", response.getDepartmentName());
         assertEquals("Software Engineer", response.getDesignationName());
+    }
+
+    @Test
+    void createEmployeeRequiresManagerForEmployeeRole() {
+        EmployeeCreateRequest request = new EmployeeCreateRequest();
+        request.setUserId(1L);
+        request.setRoleId(1);
+        request.setManagerId(null);
+
+        when(employeeRepository.existsByUserId(1L)).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () -> employeeService.createEmployee(request));
+    }
+
+    @Test
+    void createEmployeeThrowsWhenManagerNotFound() {
+        EmployeeCreateRequest request = new EmployeeCreateRequest();
+        request.setUserId(2L);
+        request.setRoleId(1);
+        request.setManagerId(999L);
+
+        when(employeeRepository.existsByUserId(2L)).thenReturn(false);
+        when(employeeRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> employeeService.createEmployee(request));
+    }
+
+    @Test
+    void createEmployeeRejectsManagerIdThatIsNotManagerRole() {
+        EmployeeCreateRequest request = new EmployeeCreateRequest();
+        request.setUserId(3L);
+        request.setRoleId(1);
+        request.setManagerId(10L);
+
+        Employee notAManager = Employee.builder().id(10L).roleId(1).build();
+
+        when(employeeRepository.existsByUserId(3L)).thenReturn(false);
+        when(employeeRepository.findById(10L)).thenReturn(Optional.of(notAManager));
+
+        assertThrows(IllegalArgumentException.class, () -> employeeService.createEmployee(request));
     }
 }

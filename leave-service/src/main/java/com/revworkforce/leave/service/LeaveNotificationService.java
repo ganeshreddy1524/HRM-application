@@ -7,6 +7,8 @@ import com.revworkforce.leave.entity.LeaveNotification;
 import com.revworkforce.leave.entity.LeaveRequest;
 import com.revworkforce.leave.exception.ResourceNotFoundException;
 import com.revworkforce.leave.repository.LeaveNotificationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class LeaveNotificationService {
+
+    private static final Logger log = LoggerFactory.getLogger(LeaveNotificationService.class);
 
     private final LeaveNotificationRepository notificationRepository;
     private final EmployeeServiceClient employeeServiceClient;
@@ -27,11 +31,13 @@ public class LeaveNotificationService {
 
     @Transactional
     public void createNotification(Long userId, String message) {
+        log.debug("Create leave notification userId={}", userId);
         LeaveNotification notification = new LeaveNotification(userId, message);
         notificationRepository.save(notification);
     }
 
     public List<LeaveNotificationResponse> getNotifications(Long userId) {
+        log.debug("Get leave notifications userId={}", userId);
         List<LeaveNotification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return notifications.stream()
                 .map(this::mapToResponse)
@@ -40,6 +46,7 @@ public class LeaveNotificationService {
 
     @Transactional
     public void markAsRead(Long notificationId) {
+        log.debug("Mark leave notification read notificationId={}", notificationId);
         LeaveNotification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification", "id", notificationId));
         notification.setReadFlag(true);
@@ -47,6 +54,7 @@ public class LeaveNotificationService {
     }
 
     public long getUnreadCount(Long userId) {
+        log.debug("Get leave unread count userId={}", userId);
         return notificationRepository.countByUserIdAndReadFlagFalse(userId);
     }
 
@@ -66,11 +74,13 @@ public class LeaveNotificationService {
 
                 // Get manager's user ID
                 EmployeeDto manager = employeeServiceClient.getEmployee(employee.getManagerId());
-                createNotification(manager.getId(), message);
+                if (manager.getUserId() != null) {
+                    createNotification(manager.getUserId(), message);
+                }
             }
         } catch (Exception e) {
-            // Log error but don't fail the transaction
-            System.err.println("Failed to send leave submission notification: " + e.getMessage());
+            // Don't fail the transaction if notification delivery fails.
+            log.warn("Failed to send leave submission notification leaveId={}", leave.getId(), e);
         }
     }
 
@@ -84,9 +94,11 @@ public class LeaveNotificationService {
                     leave.getStartDate(),
                     leave.getEndDate());
 
-            createNotification(employee.getId(), message);
+            if (employee.getUserId() != null) {
+                createNotification(employee.getUserId(), message);
+            }
         } catch (Exception e) {
-            System.err.println("Failed to send leave approval notification: " + e.getMessage());
+            log.warn("Failed to send leave approval notification leaveId={}", leave.getId(), e);
         }
     }
 
@@ -101,9 +113,11 @@ public class LeaveNotificationService {
                     leave.getEndDate(),
                     leave.getManagerComment() != null ? leave.getManagerComment() : "No reason provided");
 
-            createNotification(employee.getId(), message);
+            if (employee.getUserId() != null) {
+                createNotification(employee.getUserId(), message);
+            }
         } catch (Exception e) {
-            System.err.println("Failed to send leave rejection notification: " + e.getMessage());
+            log.warn("Failed to send leave rejection notification leaveId={}", leave.getId(), e);
         }
     }
 

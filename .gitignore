@@ -59,4 +59,4 @@ frontend/node_modules/
 node_modules/
 dist/
 target/
-*.log
+*.log"frontend/.angular/" 

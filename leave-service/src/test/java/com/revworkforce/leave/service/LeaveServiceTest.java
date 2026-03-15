@@ -41,7 +41,7 @@ class LeaveServiceTest {
         when(employeeServiceClient.getEmployeeByUserId(5L)).thenReturn(new EmployeeDto(7L, "Emp", 2L));
         when(leaveConfig.getTotalAllocatedLeaves()).thenReturn(24);
         when(leaveRepository.findByEmployeeId(7L)).thenReturn(List.of(
-                new LeaveRequest(7L, LeaveType.VACATION, LocalDate.of(year, 1, 10), LocalDate.of(year, 1, 11), "Trip", LeaveStatus.APPROVED),
+                new LeaveRequest(7L, LeaveType.PAID, LocalDate.of(year, 1, 10), LocalDate.of(year, 1, 11), "Trip", LeaveStatus.APPROVED),
                 new LeaveRequest(7L, LeaveType.SICK, LocalDate.of(year, 2, 5), LocalDate.of(year, 2, 5), "Fever", LeaveStatus.PENDING)
         ));
 

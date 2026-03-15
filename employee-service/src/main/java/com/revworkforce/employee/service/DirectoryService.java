@@ -6,6 +6,8 @@ import com.revworkforce.employee.dto.EmployeeSearchResponse;
 import com.revworkforce.employee.entity.Employee;
 import com.revworkforce.employee.repository.EmployeeRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class DirectoryService {
+
+    private static final Logger log = LoggerFactory.getLogger(DirectoryService.class);
 
     private final EmployeeRepository employeeRepository;
     private final AdminServiceClient adminServiceClient;
@@ -30,6 +34,7 @@ public class DirectoryService {
 
     @Transactional(readOnly = true)
     public List<EmployeeSearchResponse> searchEmployees(String query) {
+        log.debug("Search employees query={}", query);
         List<Employee> employees = employeeRepository.searchByNameOrEmail(query);
 
         return employees.stream()
@@ -39,6 +44,7 @@ public class DirectoryService {
 
     @Transactional(readOnly = true)
     public List<EmployeeSearchResponse> getAllEmployees() {
+        log.debug("Get all employees (directory)");
         return employeeRepository.findAll().stream()
                 .map(this::toEmployeeSearchResponse)
                 .collect(Collectors.toList());
@@ -46,6 +52,7 @@ public class DirectoryService {
 
     @Transactional(readOnly = true)
     public List<EmployeeSearchResponse> getEmployeesByDepartment(Long departmentId) {
+        log.debug("Get employees by department departmentId={}", departmentId);
         List<Employee> employees = employeeRepository.findByDepartmentId(departmentId);
 
         return employees.stream()
@@ -73,6 +80,7 @@ public class DirectoryService {
             Map<String, Object> department = adminServiceClient.getDepartmentById(departmentId);
             return (String) department.get("name");
         } catch (Exception e) {
+            log.debug("Department lookup failed departmentId={}", departmentId);
             return "Unknown Department";
         }
     }
@@ -83,6 +91,7 @@ public class DirectoryService {
             Map<String, Object> designation = adminServiceClient.getDesignationById(designationId);
             return (String) designation.get("name");
         } catch (Exception e) {
+            log.debug("Designation lookup failed designationId={}", designationId);
             return "Unknown Designation";
         }
     }
@@ -100,6 +109,7 @@ public class DirectoryService {
             Map<String, Object> authUser = authServiceClient.getUserById(userId);
             return String.valueOf(authUser.getOrDefault("employeeId", userId));
         } catch (Exception e) {
+            log.debug("Employee code lookup failed userId={}", userId);
             return String.valueOf(userId);
         }
     }

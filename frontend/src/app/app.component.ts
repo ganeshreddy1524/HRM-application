@@ -13,45 +13,34 @@ import { UiStateService } from './services/ui-state.service';
         <span>RevWorkforce</span>
       </a>
 
-      <div class="navbar-nav ms-auto d-none d-lg-flex" *ngIf="auth.isLoggedIn()">
-        <a class="nav-link" routerLink="/dashboard">Dashboard</a>
-        <a class="nav-link" routerLink="/leaves">Leaves</a>
-        <a class="nav-link" routerLink="/performance">Performance</a>
-        <a class="nav-link" routerLink="/goals">Goals</a>
-        <a class="nav-link" *ngIf="auth.role() !== 'EMPLOYEE'" routerLink="/directory">Directory</a>
-        <a class="nav-link" *ngIf="auth.role() === 'ADMIN'" routerLink="/admin">Admin</a>
-        <a class="nav-link" href="#" (click)="logout($event)">Logout</a>
-      </div>
-
-      <div class="d-flex gap-2 ms-auto align-items-center d-lg-none" *ngIf="auth.isLoggedIn(); else guestHeaderActions">
-        <button class="btn rwf-menu-toggle"
+      <ng-container *ngIf="auth.isLoggedIn(); else guestHeaderActions">
+        <button class="navbar-toggler"
                 type="button"
-                aria-label="Open feature menu"
+                aria-controls="rwfNavbar"
+                aria-label="Toggle navigation"
                 [attr.aria-expanded]="menuOpen"
                 (click)="toggleMenu()">
-          <span></span>
-          <span></span>
-          <span></span>
+          <span class="navbar-toggler-icon"></span>
         </button>
-      </div>
+
+        <div class="collapse navbar-collapse" id="rwfNavbar" [class.show]="menuOpen">
+          <div class="navbar-nav ms-auto">
+            <a class="nav-link" routerLink="/dashboard" (click)="closeMenu()">Dashboard</a>
+            <a class="nav-link" routerLink="/leaves" (click)="closeMenu()">Leaves</a>
+            <a class="nav-link" routerLink="/performance" (click)="closeMenu()">Performance</a>
+            <a class="nav-link" routerLink="/goals" (click)="closeMenu()">Goals</a>
+            <a class="nav-link" *ngIf="auth.role() !== 'EMPLOYEE'" routerLink="/directory" (click)="closeMenu()">Directory</a>
+            <a class="nav-link" *ngIf="auth.role() === 'ADMIN'" routerLink="/admin" (click)="closeMenu()">Admin</a>
+            <a class="nav-link" href="#" (click)="logout($event)">Logout</a>
+          </div>
+        </div>
+      </ng-container>
 
       <ng-template #guestHeaderActions>
-      <div class="d-flex gap-2 ms-auto">
-        <button class="btn btn-light btn-sm rwf-header-btn" (click)="openHeaderLogin()">Login</button>
-      </div>
+        <div class="d-flex gap-2 ms-auto">
+          <button class="btn btn-light btn-sm rwf-header-btn" (click)="openHeaderLogin()">Login</button>
+        </div>
       </ng-template>
-    </div>
-
-    <div class="container d-lg-none" *ngIf="auth.isLoggedIn()">
-      <div class="rwf-menu-panel" [class.open]="menuOpen">
-        <a class="nav-link" routerLink="/dashboard" (click)="closeMenu()">Dashboard</a>
-        <a class="nav-link" routerLink="/leaves" (click)="closeMenu()">Leaves</a>
-        <a class="nav-link" routerLink="/performance" (click)="closeMenu()">Performance</a>
-        <a class="nav-link" routerLink="/goals" (click)="closeMenu()">Goals</a>
-        <a class="nav-link" *ngIf="auth.role() !== 'EMPLOYEE'" routerLink="/directory" (click)="closeMenu()">Directory</a>
-        <a class="nav-link" *ngIf="auth.role() === 'ADMIN'" routerLink="/admin" (click)="closeMenu()">Admin</a>
-        <a class="nav-link" href="#" (click)="logout($event)">Logout</a>
-      </div>
     </div>
   </nav>
 
